@@ -1,0 +1,2 @@
+{"__type":"$$EventMessageAudit","id":"4123c4f7-ee2a-42bb-a5ca-c607f40fb17e","ts":"2025-09-30T22:20:01.467+08:00","eventName":"n8n.audit.user.login.failed","message":"n8n.audit.user.login.failed","payload":{"authenticationMethod":"email","userEmail":"dearlavion@gmail.com","reason":"wrong credentials"}}
+{"__type":"$$EventMessageConfirm","confirm":"4123c4f7-ee2a-42bb-a5ca-c607f40fb17e","ts":"2025-09-30T22:20:01.468+08:00","source":{"id":"0","name":"eventBus"}}
