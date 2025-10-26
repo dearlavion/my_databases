@@ -1,0 +1,300 @@
+{
+  "name": "Listener_EmailSubscriber",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "subscribe",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        16,
+        0
+      ],
+      "id": "9fcf37d8-a8f9-46ee-9ba7-eaa1c3b6541a",
+      "name": "Webhook",
+      "webhookId": "ac148fc3-8ed2-4c51-80de-8bbd28d18842"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8c884ebc-25b4-454d-b6f9-1eb9ede6ba72",
+              "name": "email",
+              "value": "={{ $json.body.email }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "35f36731-dc12-4894-a692-f1c2c15fa45c",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "collection": "email_subscriber",
+        "options": {},
+        "query": "={ \"email\": \"{{ $json.email }}\" }"
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        -16
+      ],
+      "id": "4655cfa0-8385-4129-8f4d-3b3c24f736d5",
+      "name": "Find documents",
+      "alwaysOutputData": false,
+      "credentials": {
+        "mongoDb": {
+          "id": "QYtiBsa17CJd3PbB",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fac327c9-316b-4677-bb15-2f977b73b0e3",
+              "leftValue": "={{ $json.isNewUser }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "2aaad48a-c3ed-48fe-89ed-9e26fe500717",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        48
+      ],
+      "id": "7588c763-eb95-42fc-b20e-bfe05c723995",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Safely determine if MongoDB Find returned any documents\nconst items = $input.all();\nconst hasData =\n  items.length > 1 &&\n  items[0].json &&\n  Object.keys(items[0].json).length > 0;\n\n// Extract email — fallback to previous node if empty\nconst email = $json.email || (items[1]?.json?.email) || null;\n\n// Current timestamp\nconst now = new Date();\n\n// Prepare the MongoDB-ready document\nconst newUserData = {\n  email,\n  subscribedAt: now,\n  isNewUser: !hasData,\n  lastNewsletterAt: null,   // optional\n};\n\n\n// Return unified structure for next nodes\nreturn [\n  {\n    json: {\n      isNewUser: !hasData,\n      data: newUserData\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        96
+      ],
+      "id": "ba305dca-352c-4b10-96dd-81bdf3b9d36b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        528,
+        96
+      ],
+      "id": "e9cfae6d-2204-408e-8add-0153b9fec6d7",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.all();\n\nreturn input.map(item => {\n  return {\n    json: item.json.data\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        -112
+      ],
+      "id": "ad880968-5ec2-4403-a7da-ecead9e413fd",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "collection": "email_subscriber",
+        "fields": "email,isNewUser,subscribedAt,lastNewsLetterAt",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1312,
+        -112
+      ],
+      "id": "18f8652d-3760-4075-8bbb-69f4910124de",
+      "name": "Insert documents",
+      "credentials": {
+        "mongoDb": {
+          "id": "QYtiBsa17CJd3PbB",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://my.dearlavion.site.ngrok.pizza/webhook/6d1741e9-f9f4-464b-87e5-7f0dcfa675c4",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"email\": \"{{ $json.email }}\",\n  \"isNewUser\": {{ $json.isNewUser }},\n  \"id\": \"{{ $json.id }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1520,
+        -112
+      ],
+      "id": "41808b58-fccb-4283-a094-088a87a65b8e",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Find documents",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Find documents": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Insert documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert documents": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4e27daad-be2d-4ccd-8d7f-ec356c6a47a8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c2de679b918441c11d996af98932d50d588cea9bf608ec617cb3d836b9a91cef"
+  },
+  "id": "DNhA0kNr0KO0ZywH",
+  "tags": []
+}

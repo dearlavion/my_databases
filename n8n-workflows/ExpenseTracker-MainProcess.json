@@ -1,0 +1,382 @@
+{
+  "name": "ExpenseTracker-MainProcess",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const raw = items[0].json;\n\nif (!raw.value) {\n  // If Redis returned null (empty list), exit without error\n  return [];\n}\n\nconst data = raw.value;\nconst message = data.message;\n\nif (!message?.text) {\n  throw new Error(\"Message text is missing.\");\n}\n\nconst parts = message.text.split(',');\n\nif (parts.length !== 3) {\n  throw new Error(\"Invalid message format. Expected: source,description,amount\");\n}\n\nconst [source, description, amountStr] = parts.map(p => p.trim());\nconst amount = parseFloat(amountStr);\nconst date = new Date(message.date * 1000);\n\nreturn [{\n  json: {\n    source,\n    description,\n    amount,\n    date: date.toISOString().split(\"T\")[0],\n    timestamp: date.toISOString(),\n    telegram_user_id: message.from.id,\n    username: `${message.from.first_name} ${message.from.last_name || ''}`.trim(),\n    //original_message: data\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        208
+      ],
+      "id": "d8000e14-2e2c-4f10-8e59-8b5af4d60c0d",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1tEAVuFkmp9zJAoJBaoRts_a_Da1gLzuLrlZv75JLLD8",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -688,
+        112
+      ],
+      "id": "7bd6af7c-fec1-4076-85a3-d688df967bc2",
+      "name": "HTTP Request",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZgF7UNxex6A3ZWqY",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -544,
+        224
+      ],
+      "id": "011f059b-bdbd-4994-8aba-249cd2877dd2",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputs = $input.all();\n\nconst sheetsData = inputs[0]?.json;\nconst expenseData = inputs[1]?.json;\n\nif (!sheetsData || !expenseData) {\n  throw new Error('Missing input data: check your inputs order and data format');\n}\n\n// Extract sheet titles, convert all to lowercase\nconst sheetNames = sheetsData.sheets.map(sheet => sheet.properties.title.toLowerCase());\n\n// Convert expense source to lowercase\nconst sourceLower = expenseData.source.toLowerCase();\n\n// Case-insensitive check if source exists in sheet names\nconst isSheetExist = sheetNames.includes(sourceLower);\n\n// Return updated expense object\nreturn {\n  json: {\n    ...expenseData,\n    isSheetExist: isSheetExist,\n    sheetName: expenseData.source.toUpperCase()\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        224
+      ],
+      "id": "e7dd1acc-acbc-41cd-b5dd-dd4f09d349cc",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "4849affc-0bb7-4d6d-a079-3cf676201418",
+              "leftValue": "={{$json[\"isSheetExist\"]}}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -128,
+        224
+      ],
+      "id": "08a8609f-5cc1-4632-a3b7-7f5ba96c7d85",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1tEAVuFkmp9zJAoJBaoRts_a_Da1gLzuLrlZv75JLLD8/values/{{ $json.sheetName }}!A1:append?valueInputOption=USER_ENTERED",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "values",
+              "value": "={{ $json[\"values\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        336,
+        368
+      ],
+      "id": "f70532e3-c051-4a2f-9dc5-f9c422a884e7",
+      "name": "HTTP Request1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZgF7UNxex6A3ZWqY",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1tEAVuFkmp9zJAoJBaoRts_a_Da1gLzuLrlZv75JLLD8/values/{{ $json.sheetName }}!A1:append?valueInputOption=USER_ENTERED",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "values",
+              "value": "={{ $json[\"values\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5457fd7c-18fa-46f9-aa48-b5b790cee8e4",
+      "name": "HTTP Request2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZgF7UNxex6A3ZWqY",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\n\n// Keys to exclude\nconst excludeKeys = ['isSheetExist', 'telegram_user_id', 'date', 'sheetName'];\n\n// Check if the sheet already exists\nconst isSheetExist = item.isSheetExist;\n\n// Filter out unwanted keys for headers and data\nconst filteredKeys = Object.keys(item).filter(key => !excludeKeys.includes(key));\nconst headerRow = filteredKeys;\nconst dataRow = filteredKeys.map(key => item[key]);\n\n// Construct values array conditionally\nconst values = isSheetExist\n  ? [dataRow] // Only data row if sheet already exists\n  : [headerRow, dataRow]; // Add headers if sheet is new\n\nreturn [\n  {\n    json: {\n      values: values,\n      isSheetExist: isSheetExist,\n      sheetName: item.sheetName\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        224
+      ],
+      "id": "eb10cc3c-ebe7-4a3b-b9f5-92202d59e5fb",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://sheets.googleapis.com/v4/spreadsheets/1tEAVuFkmp9zJAoJBaoRts_a_Da1gLzuLrlZv75JLLD8:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"requests\": [\n    {\n      \"addSheet\": {\n        \"properties\": {\n          \"title\": \"{{$json[\"sheetName\"]}}\"\n        }\n      }\n    }\n  ]\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -96,
+        480
+      ],
+      "id": "99412a9a-446b-4f93-bb37-87f4417169cf",
+      "name": "HTTP Request3",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ZgF7UNxex6A3ZWqY",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "5f49aa7d-e9dc-4d87-95de-eb66ed0bc4f6",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        128,
+        368
+      ],
+      "id": "e6ba08c4-b2ca-4b02-941f-971101dc99ea",
+      "name": "Merge2"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "redis-event",
+        "responseMode": "lastNode",
+        "responseData": "noData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1040,
+        208
+      ],
+      "id": "3e37d5d2-0491-4af9-be80-a0a6c6ef3c13",
+      "name": "Webhook",
+      "webhookId": "90d94c5b-871d-42a7-b2f3-618edbb12204"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1d688500-bb3d-49cc-a01b-4d3a88b20cb0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c2de679b918441c11d996af98932d50d588cea9bf608ec617cb3d836b9a91cef"
+  },
+  "id": "I3musaDYyO2Ask6D",
+  "tags": []
+}

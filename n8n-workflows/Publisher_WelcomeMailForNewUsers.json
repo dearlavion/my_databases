@@ -1,0 +1,70 @@
+{
+  "name": "Publisher_WelcomeMailForNewUsers",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "6d1741e9-f9f4-464b-87e5-7f0dcfa675c4",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "03d6b2f4-ea10-4591-b722-145f473a1741",
+      "name": "Webhook",
+      "webhookId": "6d1741e9-f9f4-464b-87e5-7f0dcfa675c4"
+    },
+    {
+      "parameters": {
+        "fromEmail": "dearlavion@gmail.com",
+        "toEmail": "={{ $json.body.email }}",
+        "subject": "✈️ Dear Lavion,",
+        "html": "=<div style=\"max-width:600px;margin:0 auto;background:#fffaf4;border-radius:16px;padding:32px;font-family:'Segoe UI',sans-serif;color:#444;line-height:1.6;border:1px solid #ffe5c2;text-align:left;\">\n  <div style=\"text-align:center;margin-bottom:24px;\">\n    <h1 style=\"color:#ffaf0f;font-size:28px;margin:0;\">Welcome to Dear Lavion 🌸</h1>\n  </div>\n  <p>Hello <strong>{{ $json.name || 'there' }}</strong>,</p>\n  <p>Excited to have you on board! We make your ideas soar ✈️✨ with intelligent, automated systems powered by AI and the cloud.</p>\n  <div style=\"text-align:center;margin:32px 0;\">\n    <a href=\"https://yourwebsite.com\" style=\"background:#ffaf0f;color:white;padding:14px 24px;border-radius:8px;text-decoration:none;font-weight:600;\">Visit Our Site</a>\n  </div>\n  <p style=\"font-size:14px;color:#888;text-align:center;margin-top:32px;\">Sent from the sky ✈️</p>\n</div>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "9b35ad42-6955-45f3-8ed4-1d9136e98f9d",
+      "name": "Send email",
+      "webhookId": "89f6522f-05f2-49f7-a89b-1578787231b4",
+      "credentials": {
+        "smtp": {
+          "id": "2knStMvYDjjrn9kp",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1b33d894-d23c-430a-be91-6f8ca11abaae",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c2de679b918441c11d996af98932d50d588cea9bf608ec617cb3d836b9a91cef"
+  },
+  "id": "NIxZCUiO0oo3WzM3",
+  "tags": []
+}
